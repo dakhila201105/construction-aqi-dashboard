@@ -3,7 +3,7 @@ pandas
 requests
 numpy
 scikit-learn
-qrcode[pil]
+qrcode
 Pillow
 matplotlib
 plotly
