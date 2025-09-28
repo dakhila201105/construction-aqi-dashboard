@@ -1,0 +1,9 @@
+streamlit
+pandas
+requests
+numpy
+scikit-learn
+qrcode[pil]
+Pillow
+matplotlib
+plotly
