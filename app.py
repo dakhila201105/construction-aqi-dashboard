@@ -3,8 +3,12 @@ import pandas as pd
 import requests
 import datetime
 import numpy as np
-import qrcode
 from io import BytesIO
+try:
+    import qrcode
+except ModuleNotFoundError:
+    import sys
+    print("qrcode not installed!", sys.executable)
 
 # --------------------------
 # Page configuration
@@ -147,3 +151,4 @@ buf = BytesIO()
 img.save(buf)
 st.image(buf.getvalue(), width=200)
 st.markdown("Scan this QR code to join the community chat and plan clean-up events! 🚧")
+
