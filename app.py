@@ -8,8 +8,8 @@ try:
     import qrcode
 except ModuleNotFoundError:
     import sys
-    print("qrcode not installed!", sys.executable)
-
+    import streamlit as st
+    st.error(f"qrcode module not installed. Python path: {sys.executable}")
 # --------------------------
 # Page configuration
 # --------------------------
@@ -151,4 +151,5 @@ buf = BytesIO()
 img.save(buf)
 st.image(buf.getvalue(), width=200)
 st.markdown("Scan this QR code to join the community chat and plan clean-up events! 🚧")
+
 
