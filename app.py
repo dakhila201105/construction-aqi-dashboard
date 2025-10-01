@@ -12,6 +12,12 @@ except ModuleNotFoundError:
     st.error("⚠️ qrcode module not installed. Add it to requirements.txt")
 
 # --------------------------
+# Auto-refresh every 5 minutes
+# --------------------------
+from streamlit_autorefresh import st_autorefresh
+st_autorefresh(interval=300000, key="datarefresh")  # 5 minutes
+
+# --------------------------
 # Page configuration
 # --------------------------
 st.set_page_config(
@@ -28,7 +34,6 @@ st.markdown("**Quick info for site workers – Live AQI and Community Planning**
 # --------------------------
 st.subheader("🌫 Live Air Quality")
 
-# Token should be set as environment variable in Render
 token = os.getenv("WAQI_TOKEN", "demo")  
 station_id = 14127
 url = f"https://api.waqi.info/feed/@{station_id}/?token={token}"
@@ -59,24 +64,27 @@ colored_metric("PM2.5 (µg/m³)", pm25, 60)
 colored_metric("PM10 (µg/m³)", pm10, 100)
 
 # --------------------------
-# Historical AQI (in-memory)
+# Historical AQI (persistent)
 # --------------------------
 st.subheader("📈 24h AQI Trend")
 
-if "history" not in st.session_state:
-    st.session_state.history = pd.DataFrame(columns=["time", "pm25", "pm10"])
+HISTORY_FILE = "aqi_history.csv"
 
+# Load history from CSV
+if os.path.exists(HISTORY_FILE):
+    history = pd.read_csv(HISTORY_FILE, parse_dates=["time"])
+else:
+    history = pd.DataFrame(columns=["time", "pm25", "pm10"])
+
+# Append new reading
 now = datetime.datetime.now()
 if pm25 is not None and pm10 is not None:
-    new_row = {"time": now, "pm25": pm25, "pm10": pm10}
-    st.session_state.history = pd.concat(
-        [st.session_state.history, pd.DataFrame([new_row])],
-        ignore_index=True
-    )
+    new_row = pd.DataFrame([{"time": now, "pm25": pm25, "pm10": pm10}])
+    history = pd.concat([history, new_row], ignore_index=True)
+    history.to_csv(HISTORY_FILE, index=False)
 
-recent = st.session_state.history[
-    st.session_state.history["time"] > (now - pd.Timedelta(hours=24))
-]
+# Keep only last 24 hours
+recent = history[history["time"] > (now - pd.Timedelta(hours=24))]
 
 if not recent.empty:
     st.line_chart(recent.set_index("time")[["pm25", "pm10"]])
