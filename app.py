@@ -4,6 +4,8 @@ import requests
 import datetime
 import numpy as np
 import os
+from streamlit_autorefresh import st_autorefresh
+
 from io import BytesIO
 
 try:
@@ -163,3 +165,4 @@ buf = BytesIO()
 img.save(buf)
 st.image(buf.getvalue(), width=200)
 st.markdown("Scan this QR code to join the community chat and plan clean-up events! 🚧")
+
