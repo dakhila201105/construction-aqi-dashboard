@@ -3,13 +3,14 @@ import pandas as pd
 import requests
 import datetime
 import numpy as np
+import os
 from io import BytesIO
+
 try:
     import qrcode
 except ModuleNotFoundError:
-    import sys
-    import streamlit as st
-    st.error(f"qrcode module not installed. Python path: {sys.executable}")
+    st.error("⚠️ qrcode module not installed. Add it to requirements.txt")
+
 # --------------------------
 # Page configuration
 # --------------------------
@@ -20,14 +21,15 @@ st.set_page_config(
 )
 
 st.title("🏗 Construction Site AQI & Community Compliance")
-st.markdown("**Quick info for site workers – Live AQI And Community Planning**")
+st.markdown("**Quick info for site workers – Live AQI and Community Planning**")
 
 # --------------------------
 # Live AQI Section
 # --------------------------
 st.subheader("🌫 Live Air Quality")
 
-token = "44192d58f58d96613ec4baa6fc99637b2d33956f"
+# Token should be set as environment variable in Render
+token = os.getenv("WAQI_TOKEN", "demo")  
 station_id = 14127
 url = f"https://api.waqi.info/feed/@{station_id}/?token={token}"
 resp = requests.get(url)
@@ -57,23 +59,25 @@ colored_metric("PM2.5 (µg/m³)", pm25, 60)
 colored_metric("PM10 (µg/m³)", pm10, 100)
 
 # --------------------------
-# Historical AQI
+# Historical AQI (in-memory)
 # --------------------------
 st.subheader("📈 24h AQI Trend")
-history_file = "aqi_history.csv"
+
+if "history" not in st.session_state:
+    st.session_state.history = pd.DataFrame(columns=["time", "pm25", "pm10"])
+
 now = datetime.datetime.now()
-new_row = {"time": now, "pm25": pm25, "pm10": pm10}
-
-try:
-    df_history = pd.read_csv(history_file, parse_dates=["time"])
-except FileNotFoundError:
-    df_history = pd.DataFrame(columns=["time", "pm25", "pm10"])
-
 if pm25 is not None and pm10 is not None:
-    df_history = pd.concat([df_history, pd.DataFrame([new_row])], ignore_index=True)
-    df_history.to_csv(history_file, index=False)
+    new_row = {"time": now, "pm25": pm25, "pm10": pm10}
+    st.session_state.history = pd.concat(
+        [st.session_state.history, pd.DataFrame([new_row])],
+        ignore_index=True
+    )
 
-recent = df_history[df_history["time"] > (now - pd.Timedelta(hours=24))]
+recent = st.session_state.history[
+    st.session_state.history["time"] > (now - pd.Timedelta(hours=24))
+]
+
 if not recent.empty:
     st.line_chart(recent.set_index("time")[["pm25", "pm10"]])
 else:
@@ -142,7 +146,7 @@ if not recent.empty:
 # Community Chat QR Code
 # --------------------------
 st.subheader("💬 Join the Community Chat")
-community_url = "https://t.me/clear_a1r"  # Replace with your Telegram or Discord invite link
+community_url = os.getenv("COMMUNITY_URL", "https://t.me/clear_a1r")  
 qr = qrcode.QRCode(box_size=8, border=2)
 qr.add_data(community_url)
 qr.make(fit=True)
@@ -151,5 +155,3 @@ buf = BytesIO()
 img.save(buf)
 st.image(buf.getvalue(), width=200)
 st.markdown("Scan this QR code to join the community chat and plan clean-up events! 🚧")
-
-
